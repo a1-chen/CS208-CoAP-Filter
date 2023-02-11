@@ -1,3 +1,4 @@
+Original HTTP Filter code from: https://github.com/iovisor/bcc/tree/master/examples/networking/http_filter
 # HTTP Filter
 
 eBPF application that parses HTTP packets and extracts (and prints on screen) the URL contained in the GET/POST request.
