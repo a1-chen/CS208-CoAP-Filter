@@ -61,19 +61,22 @@ if len(argv) > 3:
 print ("binding socket to '%s'" % interface)
 
 # initialize BPF - load source code from http-parse-simple.c
-bpf = BPF(src_file = "http-parse-simple.c",debug = 0)
+bpf = BPF(src_file = "coap-parse-simple.c",debug = 0)
 
 #load eBPF program http_filter of type SOCKET_FILTER into the kernel eBPF vm
 #more info about eBPF program types
 #http://man7.org/linux/man-pages/man2/bpf.2.html
-function_http_filter = bpf.load_func("http_filter", BPF.SOCKET_FILTER)
+#function_http_filter = bpf.load_func("http_filter", BPF.SOCKET_FILTER)
+function_coap_filter = bpf.load_func("coap_filter", BPF.SOCKET_FILTER)
 
 #create raw socket, bind it to interface
 #attach bpf program to socket created
-BPF.attach_raw_socket(function_http_filter, interface)
+#BPF.attach_raw_socket(function_http_filter, interface)
+BPF.attach_raw_socket(function_coap_filter, interface)
 
 #get file descriptor of the socket previously created inside BPF.attach_raw_socket
-socket_fd = function_http_filter.sock
+#socket_fd = function_http_filter.sock
+socket_fd = function_coap_filter.sock
 
 #create python socket object, from the file descriptor
 sock = socket.fromfd(socket_fd,socket.PF_PACKET,socket.SOCK_RAW,socket.IPPROTO_IP)
@@ -132,22 +135,39 @@ while 1:
   #The TCP header is an integral number of 32 bits long.
   #value to multiply * 4 byte
   #e.g. DataOffset = 5 ; TCP Header Length = 5 * 4 byte = 20 byte
-
   #calculate tcp header length
-  tcp_header_length = packet_bytearray[ETH_HLEN + ip_header_length + 12]  #load Byte
-  tcp_header_length = tcp_header_length & 0xF0                            #mask bit 4..7
-  tcp_header_length = tcp_header_length >> 2                              #SHR 4 ; SHL 2 -> SHR 2
+  #tcp_header_length = packet_bytearray[ETH_HLEN + ip_header_length + 12]  #load Byte
+  #tcp_header_length = tcp_header_length & 0xF0                            #mask bit 4..7
+  #tcp_header_length = tcp_header_length >> 2                               #SHR 4 ; SHL 2 -> SHR 2
 
+  #UDP HEADER
+  #https://www.rfc-editor.org/rfc/rfc768.txt
+  #   0      7 8     15 16    23 24    31  
+  #  +--------+--------+--------+--------+ 
+  #  |     Source      |   Destination   | 
+  #  |      Port       |      Port       | 
+  #  +--------+--------+--------+--------+ 
+  #  |                 |                 | 
+  #  |     Length      |    Checksum     | 
+  #  +--------+--------+--------+--------+ 
+  #  |                                     
+  #  |          data octets ...            
+  #  +---------------- ...                 
+  #
+  # UDP header length is always 8 bytes
+  udp_header_length = 8
+  
   #calculate payload offset
-  payload_offset = ETH_HLEN + ip_header_length + tcp_header_length
+  payload_offset = ETH_HLEN + ip_header_length + udp_header_length
 
   #print first line of the HTTP GET/POST request
   #line ends with 0xOD 0xOA (\r\n)
   #(if we want to print all the header print until \r\n\r\n)
-  for i in range (payload_offset,len(packet_bytearray)-1):
-    if (packet_bytearray[i]== 0x0A):
-      if (packet_bytearray[i-1] == 0x0D):
-        break
-    print ("%c" % chr(packet_bytearray[i]), end = "")
-  print("")
+  # for i in range (payload_offset,len(packet_bytearray)-1):
+  #   if (packet_bytearray[i]== 0x0A):
+  #     if (packet_bytearray[i-1] == 0x0D):
+  #       break
+  #   print ("%c" % chr(packet_bytearray[i]), end = "")
+  # print("")
+  ### TODO: add code to test coap packet by printing?
 

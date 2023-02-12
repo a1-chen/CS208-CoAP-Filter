@@ -3,17 +3,24 @@
 #include <bcc/proto.h>
 
 #define IP_TCP 	6
+#define IP_UDP  17
 #define ETH_HLEN 14
+#define COAP_HEADER_VERSION(data)  ( (0xC0 & (data)[0]) >> 6      )
+#define COAP_HEADER_TYPE(data)     ( (0x30 & (data)[0]) >> 4      )
+#define COAP_HEADER_TKL(data)      ( (0x0F & (data)[0]) >> 0      )
+#define COAP_HEADER_CLASS(data)    ( ((data)[1] >> 5) & 0x07      )
+#define COAP_HEADER_CODE(data)     ( ((data)[1] >> 0) & 0x1F      )
+#define COAP_HEADER_MID(data)      ( ((data)[2] << 8) | (data)[3] )
 
 /*eBPF program.
-  Filter IP and TCP packets, having payload not empty
+  Filter IP and UDP packets, having payload not empty
   and containing "HTTP", "GET", "POST" ... as first bytes of payload
   if the program is loaded as PROG_TYPE_SOCKET_FILTER
   and attached to a socket
   return  0 -> DROP the packet
   return -1 -> KEEP the packet and return it to user space (userspace can read it from the socket_fd )
 */
-int http_filter(struct __sk_buff *skb) {
+int coap_filter(struct __sk_buff *skb) {
 
 	u8 *cursor = 0;
 
@@ -23,13 +30,13 @@ int http_filter(struct __sk_buff *skb) {
 		goto DROP;
 	}
 
-	struct ip_t *ip = cursor_advance(cursor, sizeof(*ip));
-	//filter TCP packets (ip next protocol = 0x06)
-	if (ip->nextp != IP_TCP) {
-		goto DROP;
-	}
+    struct ip_t *ip = cursor_advance(cursor, sizeof(*ip));
+    //filter UDP packets (ip next protocol = 0x06)
+    if (ip->nextp != IP_UDP) {
+      goto DROP;
+    }
 
-	u32  tcp_header_length = 0;
+	u32  udp_header_length = 0;
 	u32  ip_header_length = 0;
 	u32  payload_offset = 0;
 	u32  payload_length = 0;
@@ -47,59 +54,44 @@ int http_filter(struct __sk_buff *skb) {
         //shift cursor forward for dynamic ip header size
         void *_ = cursor_advance(cursor, (ip_header_length-sizeof(*ip)));
 
-	struct tcp_t *tcp = cursor_advance(cursor, sizeof(*tcp));
+	struct udp_t *udp = cursor_advance(cursor, sizeof(*udp));
 
-	//calculate tcp header length
-	//value to multiply *4
-	//e.g. tcp->offset = 5 ; TCP Header Length = 5 x 4 byte = 20 byte
-	tcp_header_length = tcp->offset << 2; //SHL 2 -> *4 multiply
+  // check if udp packet length is smaller than minimum
+  if (udp->length < 8) {
+    goto DROP;
+  }
+
+	// udp header length is always 8 bytes
+	udp_header_length = 8;
 
 	//calculate payload offset and length
-	payload_offset = ETH_HLEN + ip_header_length + tcp_header_length;
-	payload_length = ip->tlen - ip_header_length - tcp_header_length;
+	payload_offset = ETH_HLEN + ip_header_length + udp_header_length;
+	payload_length = ip->tlen - ip_header_length - udp_header_length;
 
-	//http://stackoverflow.com/questions/25047905/http-request-minimum-size-in-bytes
-	//minimum length of http request is always geater than 7 bytes
+	//minimum length of coap packet is always 4 bytes or greater
 	//avoid invalid access memory
-	//include empty payload
-	if(payload_length < 7) {
+	//include empty payload (4 bytes)
+	if(payload_length < 4) {
 		goto DROP;
 	}
 
-	//load first 7 byte of payload into p (payload_array)
+	//load first 4 byte of payload into p (payload_array)
 	//direct access to skb not allowed
-	unsigned long p[7];
+	unsigned long p[4];
 	int i = 0;
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < 4; i++) {
 		p[i] = load_byte(skb, payload_offset + i);
 	}
 
-	//find a match with an HTTP message
-	//HTTP
-	if ((p[0] == 'H') && (p[1] == 'T') && (p[2] == 'T') && (p[3] == 'P')) {
-		goto KEEP;
-	}
-	//GET
-	if ((p[0] == 'G') && (p[1] == 'E') && (p[2] == 'T')) {
-		goto KEEP;
-	}
-	//POST
-	if ((p[0] == 'P') && (p[1] == 'O') && (p[2] == 'S') && (p[3] == 'T')) {
-		goto KEEP;
-	}
-	//PUT
-	if ((p[0] == 'P') && (p[1] == 'U') && (p[2] == 'T')) {
-		goto KEEP;
-	}
-	//DELETE
-	if ((p[0] == 'D') && (p[1] == 'E') && (p[2] == 'L') && (p[3] == 'E') && (p[4] == 'T') && (p[5] == 'E')) {
-		goto KEEP;
-	}
-	//HEAD
-	if ((p[0] == 'H') && (p[1] == 'E') && (p[2] == 'A') && (p[3] == 'D')) {
-		goto KEEP;
-	}
+  unsigned int coap_code = COAP_HEADER_CODE(p);
+  if (coap_code == 0) { // Method class
+    goto KEEP;
+  }
 
+  if (coap_code == 1) { // Success
+    goto KEEP;
+  }
+	
 	//no HTTP match
 	goto DROP;
 
