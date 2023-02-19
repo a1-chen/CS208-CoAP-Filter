@@ -20,7 +20,33 @@ import sys
 import socket
 import os
 
+import asyncio
+import random
+from aiocoap import *
+
 #args
+async def send_request():
+  context = await Context.create_client_context()
+  alarm_state = random.choice([True, False])
+  payload = b"OFF"
+
+  if alarm_state:
+      payload = b"ON"
+
+  request = Message(code=PUT, payload=payload, uri="coap://[128.110.217.72]/alarm")
+
+  response = await context.request(request).response
+  #print('Result: %s\n%r'%(response.code, response.payload))
+  # print("payload: ", response.payload)
+  # print("mtype: ", response.mtype)
+  # print("code: ", response.code)
+  # print("opt: ", response.opt)
+  # print("mid: ", response.mid)
+  # print("token: ", response.token)
+  # print("remote: ", response.remote)
+  # print("request: ", response.request)
+  return response
+
 def usage():
     print("USAGE: %s [-i <if_name>]" % argv[0])
     print("")
@@ -84,6 +110,8 @@ sock = socket.fromfd(socket_fd,socket.PF_PACKET,socket.SOCK_RAW,socket.IPPROTO_I
 sock.setblocking(True)
 
 while 1:
+  pkt = asyncio.run(send_request())
+
   #retrieve raw packet from socket
   packet_str = os.read(socket_fd,2048)
 
@@ -165,5 +193,7 @@ while 1:
   #  |1 1 1 1 1 1 1 1|    Payload (if any) ...
   #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   # print CoAP packet mID
-  ver = (packet_bytearray[payload_offset] & 0xC0) >> 6
-  print(ver)
+  # ver = (packet_bytearray[payload_offset] & 0xC0) >> 6
+  # print(ver)
+
+  print(pkt.payload)
