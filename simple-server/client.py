@@ -14,7 +14,15 @@ async def main():
     request = Message(code=PUT, payload=payload, uri="coap://localhost/alarm")
 
     response = await context.request(request).response
-    print('Result: %s\n%r'%(response.code, response.payload))
+    #print('Result: %s\n%r'%(response.code, response.payload))
+    print("payload: ", response.payload)
+    print("mtype: ", response.mtype)
+    print("code: ", response.code)
+    print("opt: ", response.opt)
+    print("mid: ", response.mid)
+    print("token: ", response.token)
+    print("remote: ", response.remote)
+    print("request: ", response.request)
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(main())
