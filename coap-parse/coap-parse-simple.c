@@ -88,14 +88,33 @@ int coap_filter(struct __sk_buff *skb) {
     goto KEEP;
   }
 
-  if (coap_code == 1) { // Success
+  if (coap_code == 1) { // Reserved
     goto KEEP;
   }
 
-  if (coap_code == 2) {
+  if (coap_code == 2) { // Success
     goto KEEP;
   }
 
+  if (coap_code == 3) { // Reserved
+    goto KEEP;
+  }
+
+  if (coap_code == 4) { // Client Error
+    goto KEEP;
+  }
+
+  if (coap_code == 5) { // Server Error
+    goto KEEP;
+  }
+
+  if (coap_code == 6) { // Reserved
+    goto KEEP;
+  }
+
+  if (coap_code == 7) { // Reserved
+    goto KEEP;
+  }
 	
 	//no CoAP match
 	goto DROP;
