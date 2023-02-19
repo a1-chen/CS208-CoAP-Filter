@@ -117,8 +117,8 @@ while 1:
   packet_str = os.read(socket_fd,2048)
 
   #DEBUG - print raw packet in hex format
-  # packet_hex = binascii.hexlify(packet_str)
-  # print ("%s" % packet_hex)
+  packet_hex = binascii.hexlify(packet_str)
+  print ("%s" % packet_hex)
 
   #convert packet into bytearray
   packet_bytearray = bytearray(packet_str)
@@ -128,9 +128,19 @@ while 1:
 
   #IP HEADER
   #https://tools.ietf.org/html/rfc791
-  # 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+  #  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
   # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   # |Version|  IHL  |Type of Service|          Total Length         |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |         Identification        |Flags|      Fragment Offset    |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |  Time to Live |    Protocol   |         Header Checksum       |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |                       Source Address                          |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |                    Destination Address                        |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |                    Options                    |    Padding    |
   # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   #
   #IHL : Internet Header Length is the length of the internet header
@@ -150,6 +160,14 @@ while 1:
   ip_header_length = ip_header_length & 0x0F                  #mask bits 0..3
   ip_header_length = ip_header_length << 2                    #shift to obtain length
 
+  ip_src_addr = ETH_HLEN + 12
+  ip_src_str = "Source IP:  {}.{}.{}.{}".format(packet_bytearray[ip_src_addr], packet_bytearray[ip_src_addr+1], packet_bytearray[ip_src_addr+2], packet_bytearray[ip_src_addr+3])
+  print(ip_src_str)
+  ip_dst_addr = ETH_HLEN + 16
+  ip_dst_str = "Dest IP:    {}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
+  print(ip_dst_str)
+  
+
   #UDP HEADER
   #https://www.rfc-editor.org/rfc/rfc768.txt
   #   0      7 8     15 16    23 24    31  
@@ -168,12 +186,14 @@ while 1:
   udp_header_length = 8
   
   #calculate payload offset
-  payload_offset = ETH_HLEN + ip_header_length + udp_header_length
-
+  coap_offset = ETH_HLEN + ip_header_length + udp_header_length
+  udp_src_port = ETH_HLEN + ip_header_length
+  udp_dst_port = udp_src_port + 2
+  
   #print first line of the HTTP GET/POST request
   #line ends with 0xOD 0xOA (\r\n)
   #(if we want to print all the header print until \r\n\r\n)
-  # for i in range (payload_offset,len(packet_bytearray)-1):
+  # for i in range (coap_offset,len(packet_bytearray)-1):
   #   if (packet_bytearray[i]== 0x0A):
   #     if (packet_bytearray[i-1] == 0x0D):
   #       break
@@ -193,22 +213,75 @@ while 1:
   #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   #  |1 1 1 1 1 1 1 1|    Payload (if any) ...
   #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  # print CoAP packet mID
-  for i in range (payload_offset,len(packet_bytearray)-1):
-    if (i == payload_offset):
-      ver = (packet_bytearray[i] & 0xC0) >> 6
-      if (ver == 0):
-        break
-      print("Version: %i" % ver)
-      pkt_type = (packet_bytearray[i] & 0x30) >> 4
-      if (pkt_type == 0):
-        print("Type: 0 (Confirmable)")
-      if (pkt_type == 1):
-        print("Type: 1 (Non-Confirmable)")
-      if (pkt_type == 2):
-        print("Type: 2 (Acknowledgement)")
-      if (pkt_type == 3):
-        print("Type: 3 (Reset)")
+    
+  # Version
+  pkt_ver = (packet_bytearray[coap_offset] & 0xC0) >> 6
+  if (pkt_ver == 0):
+    break
+  print("Version:    %i" % pkt_ver)
+  
+  # Type
+  pkt_type = (packet_bytearray[coap_offset] & 0x30) >> 4
+  if (pkt_type == 0):
+    print("Type:       0 (Confirmable)")
+  if (pkt_type == 1):
+    print("Type:       1 (Non-Confirmable)")
+  if (pkt_type == 2):
+    print("Type:       2 (Acknowledgement)")
+  if (pkt_type == 3):
+    print("Type:       3 (Reset)")
+  
+  # Token Length (TKL)
+  pkt_tkl = (packet_bytearray[coap_offset] & 0x0F) >> 0
+  print("TKL:        %i" % pkt_tkl)
+  
+  # Code
+  pkt_class = (packet_bytearray[coap_offset + 1] >> 5) & 0x07
+  pkt_code = (packet_bytearray[coap_offset + 1] >> 0) & 0x1F
+  print("Code:       {}.{}".format(pkt_class, repr(pkt_code).zfill(2)))
+
+  # Message ID
+  pkt_mid = int.from_bytes(packet_bytearray[(coap_offset + 2):(coap_offset + 4)], 'big')
+  print("Message ID: {}".format(pkt_mid))
+
+
+  # Token
+  pkt_token = 0
+  if (pkt_tkl > 0):
+    pkt_token = int.from_bytes(packet_bytearray[(coap_offset + 4):(coap_offset + 4 + pkt_tkl)], 'big')
+  if (pkt_token != 0):
+    print("Token:      {}".format(pkt_token))
+  else:
+    print("Token:      None (zero-length)")
+  
+  # Options
+  options_offset = coap_offset + 4 + pkt_tkl
+  pkt_options = 0
+  payload_offset = options_offset + 1
+  options_to_payload_offset = 1
+  while 1:
+    if (packet_bytearray[options_offset] == 0xFF):
+      break
+    delta_offset = 0
+    length_offset = 0
+    value_offset = 0
+    opt_delta = (packet_bytearray[options_offset] & 0xF0) >> 4
+    if (opt_delta == 13):
+      delta_offset = 1
+      
+    opt_length = (packet_bytearray[options_offset] & 0x0F) >> 0
+    
+  
+  if (pkt_options == 0):
+    print("Options:    None (zero-length)")
+  
+
+
+  print("")
+  #TODO: calculate options offset, payload offset
+  #for i in range (payload_offset,len(packet_bytearray)-1):
+    
+      
     
   
   

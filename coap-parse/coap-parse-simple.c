@@ -30,11 +30,11 @@ int coap_filter(struct __sk_buff *skb) {
 		goto DROP;
 	}
 
-    struct ip_t *ip = cursor_advance(cursor, sizeof(*ip));
-    //filter UDP packets (ip next protocol = 0x06)
-    if (ip->nextp != IP_UDP) {
-      goto DROP;
-    }
+  struct ip_t *ip = cursor_advance(cursor, sizeof(*ip));
+  //filter UDP packets (ip next protocol = 0x06)
+  if (ip->nextp != IP_UDP) {
+    goto DROP;
+  }
 
 	u32  udp_header_length = 0;
 	u32  ip_header_length = 0;
@@ -83,37 +83,71 @@ int coap_filter(struct __sk_buff *skb) {
 		p[i] = load_byte(skb, payload_offset + i);
 	}
 
-  unsigned int coap_code = COAP_HEADER_CLASS(p);
-  if (coap_code == 0) { // Method class
+  if (COAP_HEADER_VERSION(p) != 1){
+    goto DROP;
+  }
+
+  if (COAP_HEADER_TKL(p) >= 9) {
+    goto DROP;
+  }
+
+  unsigned int coap_class = COAP_HEADER_CLASS(p);
+  unsigned int coap_code = COAP_HEADER_CODE(p);
+
+  if (coap_class == 0) { // Method class
+    if(coap_code > 7) {
+      goto DROP;
+    }
     goto KEEP;
   }
 
-  if (coap_code == 1) { // Reserved
+  if (coap_class == 1) { // Reserved
+    goto DROP;
+  }
+
+  if (coap_class == 2) { // Success
+    if(coap_code == 0 || (coap_code > 5 && coap_code < 31)) {
+      goto DROP;
+    }
     goto KEEP;
   }
 
-  if (coap_code == 2) { // Success
+  if (coap_class == 3) { // Reserved
+    goto DROP;
+  }
+
+  if (coap_class == 4) { // Client Error
+    if (coap_code == 7 || coap_code == 10 || coap_code == 11 || coap_code == 14) {
+      goto DROP;
+    }
+    if (coap_code > 15 && coap_code < 22) {
+      goto DROP;
+    }
+    if (coap_code > 22 && coap_code < 29) {
+      goto DROP;
+    }
+    if(coap_code > 29) {
+      goto DROP;
+    }
     goto KEEP;
   }
 
-  if (coap_code == 3) { // Reserved
+  if (coap_class == 5) { // Server Error
+    if (coap_code > 5 && coap_code < 8) {
+      goto DROP;
+    }
+    if (coap_code > 8) {
+      goto DROP;
+    }
     goto KEEP;
   }
 
-  if (coap_code == 4) { // Client Error
-    goto KEEP;
+  if (coap_class == 6) { // Reserved
+    goto DROP;
   }
 
-  if (coap_code == 5) { // Server Error
-    goto KEEP;
-  }
-
-  if (coap_code == 6) { // Reserved
-    goto KEEP;
-  }
-
-  if (coap_code == 7) { // Reserved
-    goto KEEP;
+  if (coap_class == 7) { // Reserved
+    goto DROP;
   }
 	
 	//no CoAP match
