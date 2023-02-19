@@ -91,8 +91,13 @@ int coap_filter(struct __sk_buff *skb) {
   if (coap_code == 1) { // Success
     goto KEEP;
   }
+
+  if (coap_code == 2) {
+    goto KEEP;
+  }
+
 	
-	//no HTTP match
+	//no CoAP match
 	goto DROP;
 
 	//keep the packet and send it to userspace returning -1
