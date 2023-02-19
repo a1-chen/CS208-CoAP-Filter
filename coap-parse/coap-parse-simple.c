@@ -83,7 +83,7 @@ int coap_filter(struct __sk_buff *skb) {
 		p[i] = load_byte(skb, payload_offset + i);
 	}
 
-  unsigned int coap_code = COAP_HEADER_CODE(p);
+  unsigned int coap_code = COAP_HEADER_CLASS(p);
   if (coap_code == 0) { // Method class
     goto KEEP;
   }

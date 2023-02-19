@@ -17,6 +17,7 @@ from bcc import BPF
 from sys import argv
 
 import sys
+import binascii
 import socket
 import os
 
@@ -85,8 +86,8 @@ while 1:
   packet_str = os.read(socket_fd,2048)
 
   #DEBUG - print raw packet in hex format
-  #packet_hex = toHex(packet_str)
-  #print ("%s" % packet_hex)
+  # packet_hex = binascii.hexlify(packet_str)
+  # print ("%s" % packet_hex)
 
   #convert packet into bytearray
   packet_bytearray = bytearray(packet_str)
