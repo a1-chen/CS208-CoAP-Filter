@@ -154,6 +154,7 @@ while 1:
   total_length = packet_bytearray[ETH_HLEN + 2]               #load MSB
   total_length = total_length << 8                            #shift MSB
   total_length = total_length + packet_bytearray[ETH_HLEN+3]  #add LSB
+  #print("Total Length: {}".format(total_length))
 
   #calculate ip header length
   ip_header_length = packet_bytearray[ETH_HLEN]               #load Byte
@@ -189,6 +190,9 @@ while 1:
   coap_offset = ETH_HLEN + ip_header_length + udp_header_length
   udp_src_port = ETH_HLEN + ip_header_length
   udp_dst_port = udp_src_port + 2
+  #udp_pkt_length = udp_dst_port + 2
+  #udp_length = int.from_bytes(packet_bytearray[udp_pkt_length:udp_pkt_length+1], 'big')
+  #print("UDP Length: {}".format(udp_length))
   
   #print first line of the HTTP GET/POST request
   #line ends with 0xOD 0xOA (\r\n)
@@ -258,22 +262,70 @@ while 1:
   options_offset = coap_offset + 4 + pkt_tkl
   pkt_options = 0
   payload_offset = options_offset + 1
-  options_to_payload_offset = 1
+  #options_to_payload_offset = 0
+  options_length = 0
+  delta_num = 0
+  payload_marker = 0
+  #print("options offset: {}".format(options_offset))
   while 1:
+    if (options_offset > len(packet_bytearray)-1):
+      print("reached end of packet, no Payload")
+      break
     if (packet_bytearray[options_offset] == 0xFF):
+      print("Payload marker at: {}".format(options_offset))
+      payload_marker = 1
+      break
+    if (delta_num > 2053):
       break
     delta_offset = 0
     length_offset = 0
     value_offset = 0
-    opt_delta = (packet_bytearray[options_offset] & 0xF0) >> 4
-    if (opt_delta == 13):
+    opt_delta = (packet_bytearray[options_offset] & 0xF0) >> 4 #get option delta
+    # if delta = 13 = 0x0D, An 8-bit unsigned integer follows the initial
+    #   byte and indicates the Option Delta minus 13.
+    if (opt_delta == 0x0D):
       delta_offset = 1
-      
+      opt_delta = int.from_bytes(packet_bytearray[options_offset + 1], 'big') - 13
+    # if delta = 14 = 0x0E, A 16-bit unsigned integer in network byte order follows the
+    #   initial byte and indicates the Option Delta minus 269.
+    if (opt_delta == 0x0E):
+      delta_offset = 2
+      opt_delta = int.from_bytes(packet_bytearray[options_offset + 1:options_offset + 2], 'big') - 269
+    # if delta = 15 = 0x0F, message error
+    if (opt_delta == 0x0F):
+      print("opt_delta broke lol")
+      break
+    # print option num from delta
+    delta_num += opt_delta
+
+    # option length
     opt_length = (packet_bytearray[options_offset] & 0x0F) >> 0
-    
+    if (opt_length == 0x0D):
+      length_offset = 1
+      opt_length = int.from_bytes(packet_bytearray[options_offset + delta_offset + 1], 'big') - 13
+    if (opt_length == 0x0E):
+      length_offset = 2
+      opt_length = int.from_bytes(packet_bytearray[options_offset + delta_offset + 1 : options_offset + delta_offset + 2], 'big') - 269
+    if (opt_length == 0x0F):
+      print("opt_length broke lol")
+      break
+    #options_to_payload_offset += delta_offset + length_offset + opt_length + 1
+    print("Option #: {}".format(delta_num))
+    pkt_options += 1
+    options_offset += delta_offset + length_offset + opt_length + 1
   
+  # Payload
+  #print("opt to payload: {}".format(options_to_payload_offset))
+  #print("opt offset fnal {}".format(options_offset))
   if (pkt_options == 0):
     print("Options:    None (zero-length)")
+  if (payload_marker != 0):
+    payload_offset = options_offset + 1
+    print("Payload: ", end = "")
+    for i in range(payload_offset, len(packet_bytearray)):
+      print("%c" %chr(packet_bytearray[i]), end = "")
+  else:
+    print("Payload: empty")
   
 
 
