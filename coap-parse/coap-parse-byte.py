@@ -154,7 +154,7 @@ while 1:
   total_length = packet_bytearray[ETH_HLEN + 2]               #load MSB
   total_length = total_length << 8                            #shift MSB
   total_length = total_length + packet_bytearray[ETH_HLEN+3]  #add LSB
-  #print("Total Length: {}".format(total_length))
+  print("Total Length: {}".format(total_length))
 
   #calculate ip header length
   ip_header_length = packet_bytearray[ETH_HLEN]               #load Byte
@@ -189,10 +189,16 @@ while 1:
   #calculate payload offset
   coap_offset = ETH_HLEN + ip_header_length + udp_header_length
   udp_src_port = ETH_HLEN + ip_header_length
+  udp_src = int.from_bytes(packet_bytearray[udp_src_port:udp_src_port + 2], 'big')
+  print("Source Port:{}".format(udp_src))
+
   udp_dst_port = udp_src_port + 2
-  #udp_pkt_length = udp_dst_port + 2
-  #udp_length = int.from_bytes(packet_bytearray[udp_pkt_length:udp_pkt_length+1], 'big')
-  #print("UDP Length: {}".format(udp_length))
+  udp_dst = int.from_bytes(packet_bytearray[udp_dst_port:udp_dst_port + 2], 'big')
+  print("Dest Port:  {}".format(udp_dst))
+  
+  udp_pkt_length = udp_dst_port + 2
+  udp_length = int.from_bytes(packet_bytearray[udp_pkt_length:udp_pkt_length+2], 'big')
+  print("UDP Length: {}".format(udp_length))
   
   #print first line of the HTTP GET/POST request
   #line ends with 0xOD 0xOA (\r\n)
@@ -290,7 +296,7 @@ while 1:
     #   initial byte and indicates the Option Delta minus 269.
     if (opt_delta == 0x0E):
       delta_offset = 2
-      opt_delta = int.from_bytes(packet_bytearray[options_offset + 1:options_offset + 2], 'big') - 269
+      opt_delta = int.from_bytes(packet_bytearray[options_offset + 1:options_offset + 3], 'big') - 269
     # if delta = 15 = 0x0F, message error
     if (opt_delta == 0x0F):
       print("opt_delta broke lol")
@@ -305,7 +311,7 @@ while 1:
       opt_length = int.from_bytes(packet_bytearray[options_offset + delta_offset + 1], 'big') - 13
     if (opt_length == 0x0E):
       length_offset = 2
-      opt_length = int.from_bytes(packet_bytearray[options_offset + delta_offset + 1 : options_offset + delta_offset + 2], 'big') - 269
+      opt_length = int.from_bytes(packet_bytearray[options_offset + delta_offset + 1 : options_offset + delta_offset + 3], 'big') - 269
     if (opt_length == 0x0F):
       print("opt_length broke lol")
       break
