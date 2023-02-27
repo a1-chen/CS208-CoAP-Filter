@@ -47,6 +47,34 @@ async def send_request():
   # print("request: ", response.request)
   return response
 
+def observe_callback(response):
+  if response.code.is_successful():
+      print("Alarm status: %s" % (response.payload.decode('ascii')))
+  else:
+      print('Error code %s' % response.code)
+
+async def observe():
+  context = await Context.create_client_context()
+
+  request = Message(code=GET)
+  request.set_request_uri('coap://[128.110.217.72]/alarm')
+  request.opt.observe = 0
+  observation_is_over = asyncio.Future()
+
+  try:
+      context_request = context.request(request)
+      context_request.observation.register_callback(observe_callback)
+      response = await context_request.response
+      exit_reason = await observation_is_over
+      print('Observation is over: %r' % exit_reason)
+  finally:
+      if not context_request.response.done():
+          context_request.response.cancel()
+      if not context_request.observation.cancelled:
+          context_request.observation.cancel()
+
+  return response
+
 def usage():
     print("USAGE: %s [-i <if_name>]" % argv[0])
     print("")
@@ -110,7 +138,8 @@ sock = socket.fromfd(socket_fd,socket.PF_PACKET,socket.SOCK_RAW,socket.IPPROTO_I
 sock.setblocking(True)
 
 while 1:
-  pkt = asyncio.run(send_request())
+  #pkt = asyncio.run(send_request())
+  pkt = asyncio.run(observe())
 
   #retrieve raw packet from socket
   packet_str = os.read(socket_fd,2048)
@@ -197,3 +226,4 @@ while 1:
   # print(ver)
 
   print(pkt.payload)
+
