@@ -46,13 +46,44 @@ int coap_filter(struct __sk_buff *skb) {
 	//e.g. ip->hlen = 5 ; IP Header Length = 5 x 4 byte = 20 byte
 	ip_header_length = ip->hlen << 2;    //SHL 2 -> *4 multiply
 
-        //check ip header length against minimum
+  //check ip header length against minimum
 	if (ip_header_length < sizeof(*ip)) {
 		goto DROP;
 	}
+  u32 ip_src_offset = ETH_HLEN + 12;
+  u32 ip_dst_offset = ETH_HLEN + 16;
 
-        //shift cursor forward for dynamic ip header size
-        void *_ = cursor_advance(cursor, (ip_header_length-sizeof(*ip)));
+  //load source and destination address into addr[] (address array)
+  unsigned long addr[8];
+	int j = 0;
+	for (j = 0; j < 8; j++) {
+		addr[j] = load_byte(skb, ip_src_offset + j);
+	}
+
+  //if source is DNS IP
+  if (addr[0] == 128) {
+    if (addr[1] == 110) {
+      if (addr[2] == 156) {
+        if (addr[3] == 4) {
+          goto DROP;
+        }
+      }
+    }
+  }
+
+  //if destination is DNS IP
+  if (addr[4] == 128) {
+    if (addr[5] == 110) {
+      if (addr[6] == 156) {
+        if (addr[7] == 4) {
+          goto DROP;
+        }
+      }
+    }
+  }
+
+  //shift cursor forward for dynamic ip header size
+  void *_ = cursor_advance(cursor, (ip_header_length-sizeof(*ip)));
 
 	struct udp_t *udp = cursor_advance(cursor, sizeof(*udp));
 

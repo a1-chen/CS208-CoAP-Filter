@@ -162,10 +162,10 @@ while 1:
   ip_header_length = ip_header_length << 2                    #shift to obtain length
 
   ip_src_addr = ETH_HLEN + 12
-  ip_src_str = "Source IP:  {}.{}.{}.{}".format(packet_bytearray[ip_src_addr], packet_bytearray[ip_src_addr+1], packet_bytearray[ip_src_addr+2], packet_bytearray[ip_src_addr+3])
+  ip_src_str = "Source IP:    {}.{}.{}.{}".format(packet_bytearray[ip_src_addr], packet_bytearray[ip_src_addr+1], packet_bytearray[ip_src_addr+2], packet_bytearray[ip_src_addr+3])
   print(ip_src_str)
   ip_dst_addr = ETH_HLEN + 16
-  ip_dst_str = "Dest IP:    {}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
+  ip_dst_str = "Dest IP:      {}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
   print(ip_dst_str)
   
 
@@ -190,15 +190,15 @@ while 1:
   coap_offset = ETH_HLEN + ip_header_length + udp_header_length
   udp_src_port = ETH_HLEN + ip_header_length
   udp_src = int.from_bytes(packet_bytearray[udp_src_port:udp_src_port + 2], 'big')
-  print("Source Port:{}".format(udp_src))
+  print("Source Port:  {}".format(udp_src))
 
   udp_dst_port = udp_src_port + 2
   udp_dst = int.from_bytes(packet_bytearray[udp_dst_port:udp_dst_port + 2], 'big')
-  print("Dest Port:  {}".format(udp_dst))
+  print("Dest Port:    {}".format(udp_dst))
   
   udp_pkt_length = udp_dst_port + 2
   udp_length = int.from_bytes(packet_bytearray[udp_pkt_length:udp_pkt_length+2], 'big')
-  print("UDP Length: {}".format(udp_length))
+  print("UDP Length:   {}".format(udp_length))
   
   #print first line of the HTTP GET/POST request
   #line ends with 0xOD 0xOA (\r\n)
@@ -228,31 +228,31 @@ while 1:
   pkt_ver = (packet_bytearray[coap_offset] & 0xC0) >> 6
   if (pkt_ver == 0):
     break
-  print("Version:    %i" % pkt_ver)
+  print("Version:      %i" % pkt_ver)
   
   # Type
   pkt_type = (packet_bytearray[coap_offset] & 0x30) >> 4
   if (pkt_type == 0):
-    print("Type:       0 (Confirmable)")
+    print("Type:         0 (Confirmable)")
   if (pkt_type == 1):
-    print("Type:       1 (Non-Confirmable)")
+    print("Type:         1 (Non-Confirmable)")
   if (pkt_type == 2):
-    print("Type:       2 (Acknowledgement)")
+    print("Type:         2 (Acknowledgement)")
   if (pkt_type == 3):
-    print("Type:       3 (Reset)")
+    print("Type:         3 (Reset)")
   
   # Token Length (TKL)
   pkt_tkl = (packet_bytearray[coap_offset] & 0x0F) >> 0
-  print("TKL:        %i" % pkt_tkl)
+  print("TKL:          %i" % pkt_tkl)
   
   # Code
   pkt_class = (packet_bytearray[coap_offset + 1] >> 5) & 0x07
   pkt_code = (packet_bytearray[coap_offset + 1] >> 0) & 0x1F
-  print("Code:       {}.{}".format(pkt_class, repr(pkt_code).zfill(2)))
+  print("Code:         {}.{}".format(pkt_class, repr(pkt_code).zfill(2)))
 
   # Message ID
   pkt_mid = int.from_bytes(packet_bytearray[(coap_offset + 2):(coap_offset + 4)], 'big')
-  print("Message ID: {}".format(pkt_mid))
+  print("Message ID:   {}".format(pkt_mid))
 
 
   # Token
@@ -260,9 +260,9 @@ while 1:
   if (pkt_tkl > 0):
     pkt_token = int.from_bytes(packet_bytearray[(coap_offset + 4):(coap_offset + 4 + pkt_tkl)], 'big')
   if (pkt_token != 0):
-    print("Token:      {}".format(pkt_token))
+    print("Token:        {}".format(pkt_token))
   else:
-    print("Token:      None (zero-length)")
+    print("Token:        None (zero-length)")
   
   # Options
   options_offset = coap_offset + 4 + pkt_tkl
@@ -316,7 +316,7 @@ while 1:
       print("opt_length broke lol")
       break
     #options_to_payload_offset += delta_offset + length_offset + opt_length + 1
-    print("Option #: {}".format(delta_num))
+    print("Option #:     {}".format(delta_num))
     pkt_options += 1
     options_offset += delta_offset + length_offset + opt_length + 1
   
@@ -324,22 +324,18 @@ while 1:
   #print("opt to payload: {}".format(options_to_payload_offset))
   #print("opt offset fnal {}".format(options_offset))
   if (pkt_options == 0):
-    print("Options:    None (zero-length)")
+    print("Options:      None (zero-length)")
   if (payload_marker != 0):
     payload_offset = options_offset + 1
-    print("Payload: ", end = "")
+    print("Payload:      ", end = "")
     for i in range(payload_offset, len(packet_bytearray)):
       print("%c" %chr(packet_bytearray[i]), end = "")
   else:
-    print("Payload: empty")
+    print("Payload:      empty")
   
-
-
   print("")
-  #TODO: calculate options offset, payload offset
-  #for i in range (payload_offset,len(packet_bytearray)-1):
-    
-      
+  print("")
+  
     
   
   
