@@ -11,7 +11,7 @@ async def main():
     if alarm_state:
         payload = b"ON"
 
-    request = Message(code=PUT, payload=payload, uri="coap://[128.110.217.72]/alarm")
+    request = Message(code=PUT, payload=payload, uri="coap://[10.244.1.20]/alarm")
 
     response = await context.request(request).response
     #print('Result: %s\n%r'%(response.code, response.payload))
