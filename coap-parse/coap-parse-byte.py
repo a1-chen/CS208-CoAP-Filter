@@ -25,6 +25,8 @@ import asyncio
 import random
 from aiocoap import *
 
+import requests
+
 #args
 # async def send_request():
 #   context = await Context.create_client_context()
@@ -337,5 +339,5 @@ while 1:
   print("")
   
   # TODO: slap it into the http tcp post packet
-  
+  requests.post()
   
