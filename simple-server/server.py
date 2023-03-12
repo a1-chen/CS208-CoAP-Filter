@@ -23,7 +23,7 @@ def main():
     root = resource.Site()
     root.add_resource(['alarm'], AlarmResource())
 
-    asyncio.Task(aiocoap.Context.create_server_context(root, bind=('10.244.1.20', 5683)))
+    asyncio.Task(aiocoap.Context.create_server_context(root, bind=('198.22.255.30', 5683)))
 
     asyncio.get_event_loop().run_forever()
 

@@ -339,5 +339,5 @@ while 1:
   print("")
   
   # TODO: slap it into the http tcp post packet
-  requests.post()
+  #requests.post()
   
