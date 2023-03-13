@@ -1,0 +1,72 @@
+version: "3"
+
+services:
+
+    hostA:
+        image: python:latest
+        container_name: server
+        tty: true
+        cap_add:
+                - ALL
+        volumes:
+                - ./coap-parse-byte.py:/server_storage/coap-parse-byte.py
+                - ./coap-parse-simple.c:/server_storage/coap-parse-simple.c
+                  # - ./server_persistant_storage:/server_storage/server_persistant_storage
+        working_dir: /server_storage/
+        networks:
+            net-10.9.0.0:
+                ipv4_address: 10.9.0.5
+                #command: mkdir server_persistant_storage && python3 server.py
+        #command: bash -c "mkdir server_persistant_storage
+        #                  && python3 server.py"
+
+    hostB:
+        image: python:latest
+        container_name: client
+        depends_on:
+                - hostA
+        tty: true
+        cap_add:
+                - ALL
+
+        volumes:
+                - ./client.py:/client_storage/client.py
+                  # - ./client_persistant_storage:/client_storage/client_persistant_storage
+
+        working_dir: /client_storage/
+        networks:
+            net-10.9.0.0:
+                ipv4_address: 10.9.0.6
+                #command: mkdir client_persistant_storage && python3 client.py
+        #command: bash -c "mkdir client_persistant_storage
+        #               && python3 client.py"
+
+    hostC:
+        image: python:latest
+        container_name: http
+        depends_on:
+                - hostA
+        tty: true
+        cap_add:
+                - ALL
+
+        volumes:
+                - ./http-parse-simple.py:/http_storage/http-parse-simple.py
+                - ./http-parse-simple.c:/http_storage/http-parse-simple.c
+                  # - ./client_persistant_storage:/client_storage/client_persistant_storage
+
+        working_dir: /http_storage/
+        networks:
+            net-10.9.0.0:
+                ipv4_address: 10.9.0.7
+                #command: mkdir client_persistant_storage && python3 client.py
+        #command: bash -c "mkdir client_persistant_storage
+         #              && python3 client.py"
+
+networks:
+    net-10.9.0.0:
+            #name: net-10.9.0.0
+            #net-10:9.0.0:
+        ipam:
+            config:
+                - subnet: 10.9.0.0/24
