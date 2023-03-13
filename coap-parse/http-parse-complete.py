@@ -99,7 +99,7 @@ if len(argv) > 3:
 print("binding socket to '%s'" % interface)
 
 # initialize BPF - load source code from http-parse-complete.c
-bpf = BPF(src_file="http-parse-complete.c", debug=0)
+bpf = BPF(src_file="http-to-coap-filter.c", debug=0)
 
 # load eBPF program http_filter of type SOCKET_FILTER into the kernel eBPF vm
 # more info about eBPF program types

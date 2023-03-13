@@ -106,11 +106,11 @@ int http_filter(struct __sk_buff *skb) {
 	//find a match with an HTTP message
 	//HTTP
 	if ((p[0] == 'H') && (p[1] == 'T') && (p[2] == 'T') && (p[3] == 'P')) {
-		goto HTTP_MATCH;
+		goto DROP;
 	}
 	//GET
 	if ((p[0] == 'G') && (p[1] == 'E') && (p[2] == 'T')) {
-		goto HTTP_MATCH;
+		goto DROP;
 	}
 	//POST
 	if ((p[0] == 'P') && (p[1] == 'O') && (p[2] == 'S') && (p[3] == 'T')) {
@@ -118,15 +118,15 @@ int http_filter(struct __sk_buff *skb) {
 	}
 	//PUT
 	if ((p[0] == 'P') && (p[1] == 'U') && (p[2] == 'T')) {
-		goto HTTP_MATCH;
+		goto DROP;
 	}
 	//DELETE
 	if ((p[0] == 'D') && (p[1] == 'E') && (p[2] == 'L') && (p[3] == 'E') && (p[4] == 'T') && (p[5] == 'E')) {
-		goto HTTP_MATCH;
+		goto DROP;
 	}
 	//HEAD
 	if ((p[0] == 'H') && (p[1] == 'E') && (p[2] == 'A') && (p[3] == 'D')) {
-		goto HTTP_MATCH;
+		goto DROP;
 	}
 
 	//no HTTP match
