@@ -64,16 +64,6 @@ int coap_filter(struct __sk_buff *skb) {
   if (addr[0] == 198) {
     if (addr[1] == 22) {
       if (addr[2] == 255) {
-        if (addr[3] == 17) {
-          goto DROP;
-        }
-      }
-    }
-  }
-  
-  if (addr[0] == 198) {
-    if (addr[1] == 22) {
-      if (addr[2] == 255) {
         if (addr[3] == 3) {
           goto DROP;
         }
@@ -82,16 +72,6 @@ int coap_filter(struct __sk_buff *skb) {
   }
 
   //if destination is DNS IP
-  if (addr[4] == 198) {
-    if (addr[5] == 22) {
-      if (addr[6] == 255) {
-        if (addr[7] == 17) {
-          goto DROP;
-        }
-      }
-    }
-  }
-
   if (addr[4] == 198) {
     if (addr[5] == 22) {
       if (addr[6] == 255) {

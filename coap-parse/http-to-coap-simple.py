@@ -62,7 +62,7 @@ if len(argv) > 3:
 print ("binding socket to '%s'" % interface)
 
 # initialize BPF - load source code from http-parse-simple.c
-bpf = BPF(src_file = "http-parse-simple.c",debug = 0)
+bpf = BPF(src_file = "http-to-coap-filter.c",debug = 0)
 
 #load eBPF program http_filter of type SOCKET_FILTER into the kernel eBPF vm
 #more info about eBPF program types
@@ -80,7 +80,7 @@ socket_fd = function_http_filter.sock
 sock = socket.fromfd(socket_fd,socket.PF_PACKET,socket.SOCK_RAW,socket.IPPROTO_IP)
 #set it as blocking socket
 sock.setblocking(True)
-
+print("ready to filter")
 while 1:
   #retrieve raw packet from socket
   packet_str = os.read(socket_fd,2048)

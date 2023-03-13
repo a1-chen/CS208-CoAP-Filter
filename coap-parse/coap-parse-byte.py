@@ -24,6 +24,7 @@ import os
 import asyncio
 import random
 from aiocoap import *
+import base64
 
 import requests
 
@@ -112,6 +113,7 @@ sock = socket.fromfd(socket_fd,socket.PF_PACKET,socket.SOCK_RAW,socket.IPPROTO_I
 #set it as blocking socket
 sock.setblocking(True)
 
+print("ready to filter")
 while 1:
   # pkt = asyncio.run(send_request())
 
@@ -211,7 +213,6 @@ while 1:
   #       break
   #   print ("%c" % chr(packet_bytearray[i]), end = "")
   # print("")
-  ### TODO: add code to test coap packet by printing?
 
 
   #  0                   1                   2                   3
@@ -339,5 +340,48 @@ while 1:
   print("")
   
   # TODO: slap it into the http tcp post packet
-  #requests.post()
-  
+  url = "{}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
+  # packet_bytearray[ip_src_addr+2], packet_bytearray[ip_src_addr+3]
+  # print(url)
+  # requests.post(url, "buh")
+  # r = requests.get('https://api.github.com/events')
+
+  coap_data = packet_bytearray[coap_offset:]
+  print(coap_data)
+  coap_hex = binascii.hexlify(coap_data)
+  print(coap_hex)
+  # data = base64.b64encode(coap_data)
+  # print(data)
+  # decoded = base64.b64decode(data)
+  # print(decoded)
+
+  ip_header  = bytearray(b'\x45\x00\x00\x28')  # Version, IHL, Type of Service | Total Length
+  ip_header += bytearray(b'\xab\xcd\x00\x00')  # Identification | Flags, Fragment Offset
+  ip_header += bytearray(b'\x40\x06\xa6\xec')  # TTL, Protocol | Header Checksum
+  ip_header += packet_bytearray[ip_src_addr:ip_src_addr+4]  # Source Address
+  ip_header += packet_bytearray[ip_dst_addr:ip_dst_addr+4]  # Destination Address
+
+  tcp_header  = packet_bytearray[udp_src_port:udp_src_port + 2] # Source Port 
+  tcp_header += packet_bytearray[udp_dst_port:udp_dst_port + 2] # Destination Port
+  tcp_header += bytearray(b'\x00\x00\x00\x00') # Sequence Number
+  tcp_header += bytearray(b'\x00\x00\x00\x00') # Acknowledgement Number
+  tcp_header += bytearray(b'\x50\x02\x71\x10') # Data Offset, Reserved, Flags | Window Size
+  tcp_header += bytearray(b'\xe6\x32\x00\x00') # Checksum | Urgent Pointer
+
+  # http_header = b'\x47\x45\x54\x20\x2f\x20\x48\x54\x54\x50\x2f\x31\x2e\x31\x0d\x0a' # "GET \ HTTP\1.1"
+  http_header = bytearray(b"POSTC \\ HTTP\\1.1\x0d\x0a")
+  http_header += coap_data
+  http_header += bytearray(b"\x0d\x0a\x0d\x0a")
+
+
+  packet = ip_header + tcp_header + http_header
+  packet[2] = len(packet) >> 8
+  packet[3] = len(packet) & 0x00FF
+
+  s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+  s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+
+  s.sendto(packet, (url, udp_dst))
+  # s.sendto(packet, ('10.10.10.1', 0))
+  s.close()
+ 

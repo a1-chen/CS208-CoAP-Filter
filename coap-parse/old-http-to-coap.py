@@ -132,7 +132,7 @@ packet_count = 0
 # save the firt part of it in this local dict
 # when I find \r\n in a next pkt, append and print the whole url
 local_dictionary = {}
-
+print("ready to filter")
 while 1:
     # retrieve raw packet from socket
     packet_str = os.read(socket_fd, 4096)  # set packet length to max packet length on the interface

@@ -5,9 +5,29 @@
 #define IP_TCP 	6
 #define ETH_HLEN 14
 
+struct Key {
+	u32 src_ip;               //source ip
+	u32 dst_ip;               //destination ip
+	unsigned short src_port;  //source port
+	unsigned short dst_port;  //destination port
+};
+
+struct Leaf {
+	int timestamp;            //timestamp in ns
+};
+
+//BPF_TABLE(map_type, key_type, leaf_type, table_name, num_entry)
+//map <Key, Leaf>
+//tracing sessions having same Key(dst_ip, src_ip, dst_port,src_port)
+BPF_HASH(sessions, struct Key, struct Leaf, 1024);
+
 /*eBPF program.
   Filter IP and TCP packets, having payload not empty
-  and containing "HTTP", "GET", "POST" ... as first bytes of payload
+  and containing "HTTP", "GET", "POST"  as first bytes of payload.
+  AND ALL the other packets having same (src_ip,dst_ip,src_port,dst_port)
+  this means belonging to the same "session"
+  this additional check avoids url truncation, if url is too long
+  userspace script, if necessary, reassembles urls split in 2 or more packets.
   if the program is loaded as PROG_TYPE_SOCKET_FILTER
   and attached to a socket
   return  0 -> DROP the packet
@@ -33,21 +53,30 @@ int http_filter(struct __sk_buff *skb) {
 	u32  ip_header_length = 0;
 	u32  payload_offset = 0;
 	u32  payload_length = 0;
+	struct Key 	key;
+	struct Leaf zero = {0};
 
-	//calculate ip header length
-	//value to multiply * 4
-	//e.g. ip->hlen = 5 ; IP Header Length = 5 x 4 byte = 20 byte
-	ip_header_length = ip->hlen << 2;    //SHL 2 -> *4 multiply
+        //calculate ip header length
+        //value to multiply * 4
+        //e.g. ip->hlen = 5 ; IP Header Length = 5 x 4 byte = 20 byte
+        ip_header_length = ip->hlen << 2;    //SHL 2 -> *4 multiply
 
         //check ip header length against minimum
-	if (ip_header_length < sizeof(*ip)) {
-		goto DROP;
-	}
+        if (ip_header_length < sizeof(*ip)) {
+                goto DROP;
+        }
 
         //shift cursor forward for dynamic ip header size
         void *_ = cursor_advance(cursor, (ip_header_length-sizeof(*ip)));
 
 	struct tcp_t *tcp = cursor_advance(cursor, sizeof(*tcp));
+
+	//retrieve ip src/dest and port src/dest of current packet
+	//and save it into struct Key
+	key.dst_ip = ip->dst;
+	key.src_ip = ip->src;
+	key.dst_port = tcp->dst_port;
+	key.src_port = tcp->src_port;
 
 	//calculate tcp header length
 	//value to multiply *4
@@ -85,7 +114,7 @@ int http_filter(struct __sk_buff *skb) {
 	}
 	//POST
 	if ((p[0] == 'P') && (p[1] == 'O') && (p[2] == 'S') && (p[3] == 'T')) {
-		goto KEEP;
+		goto HTTP_MATCH;
 	}
 	//PUT
 	if ((p[0] == 'P') && (p[1] == 'U') && (p[2] == 'T')) {
@@ -101,9 +130,20 @@ int http_filter(struct __sk_buff *skb) {
 	}
 
 	//no HTTP match
+	//check if packet belong to an HTTP session
+	struct Leaf * lookup_leaf = sessions.lookup(&key);
+	if(lookup_leaf) {
+		//send packet to userspace
+		goto KEEP;
+	}
 	goto DROP;
 
 	//keep the packet and send it to userspace returning -1
+	HTTP_MATCH:
+	//if not already present, insert into map <Key, Leaf>
+	sessions.lookup_or_try_init(&key,&zero);
+
+	//send packet to userspace returning -1
 	KEEP:
 	return -1;
 
