@@ -171,11 +171,11 @@ while 1:
 
   tcp_src_port = ETH_HLEN + ip_header_length
   tcp_src = int.from_bytes(packet_bytearray[tcp_src_port:tcp_src_port + 2], 'big')
-  print("Source Port:  {}".format(udp_src))
+  print("Source Port:  {}".format(tcp_src))
 
   tcp_dst_port = tcp_src_port + 2
   tcp_dst = int.from_bytes(packet_bytearray[tcp_dst_port:tcp_dst_port + 2], 'big')
-  print("Dest Port:    {}".format(udp_dst))
+  print("Dest Port:    {}".format(tcp_dst))
 
   #print first line of the HTTP GET/POST request
   #line ends with 0xOD 0xOA (\r\n)
