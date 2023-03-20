@@ -97,9 +97,19 @@ while 1:
 
   #IP HEADER
   #https://tools.ietf.org/html/rfc791
-  # 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+  #  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
   # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   # |Version|  IHL  |Type of Service|          Total Length         |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |         Identification        |Flags|      Fragment Offset    |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |  Time to Live |    Protocol   |         Header Checksum       |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |                       Source Address                          |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |                    Destination Address                        |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |                    Options                    |    Padding    |
   # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   #
   #IHL : Internet Header Length is the length of the internet header
@@ -119,8 +129,25 @@ while 1:
   ip_header_length = ip_header_length & 0x0F                  #mask bits 0..3
   ip_header_length = ip_header_length << 2                    #shift to obtain length
 
+  ip_src_addr = ETH_HLEN + 12
+  ip_src_str = "Source IP:    {}.{}.{}.{}".format(packet_bytearray[ip_src_addr], packet_bytearray[ip_src_addr+1], packet_bytearray[ip_src_addr+2], packet_bytearray[ip_src_addr+3])
+  print(ip_src_str)
+  ip_dst_addr = ETH_HLEN + 16
+  ip_dst_str = "Dest IP:      {}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
+  print(ip_dst_str)
+
   #TCP HEADER
   #https://www.rfc-editor.org/rfc/rfc793.txt
+  #  0                   1                   2                   3   
+  #  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |          Source Port          |       Destination Port        |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |                        Sequence Number                        |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  # |                    Acknowledgment Number                      |
+  # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
   #  12              13              14              15
   #  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
   # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -142,15 +169,40 @@ while 1:
   #calculate payload offset
   payload_offset = ETH_HLEN + ip_header_length + tcp_header_length
 
+  tcp_src_port = ETH_HLEN + ip_header_length
+  tcp_src = int.from_bytes(packet_bytearray[tcp_src_port:tcp_src_port + 2], 'big')
+  print("Source Port:  {}".format(udp_src))
+
+  tcp_dst_port = tcp_src_port + 2
+  tcp_dst = int.from_bytes(packet_bytearray[tcp_dst_port:tcp_dst_port + 2], 'big')
+  print("Dest Port:    {}".format(udp_dst))
+
   #print first line of the HTTP GET/POST request
   #line ends with 0xOD 0xOA (\r\n)
   #(if we want to print all the header print until \r\n\r\n)
-  for i in range (payload_offset,len(packet_bytearray)-1):
-    if (packet_bytearray[i] == 0x0A):
-      if (packet_bytearray[i-1] == 0x0D):
-        if (packet_bytearray[i-2] == 0x0A):
-          if (packet_bytearray[i-3] == 0x0D):
-            break
-    print ("%c" % chr(packet_bytearray[i]), end = "")
-  print("")
+  # for i in range (payload_offset,len(packet_bytearray)-1):
+  #   if (packet_bytearray[i] == 0x0A):
+  #     if (packet_bytearray[i-1] == 0x0D):
+  #       if (packet_bytearray[i-2] == 0x0A):
+  #         if (packet_bytearray[i-3] == 0x0D):
+  #           break
+  #   print ("%c" % chr(packet_bytearray[i]), end = "")
+  # print("")
+  
+  coap_offset = payload_offset + 17
+  coap_data = packet_bytearray[coap_offset:]
+  print(coap_data)
 
+  ip_header  = bytearray(b'\x45\x00\x00\x28')  # Version, IHL, Type of Service | Total Length
+  ip_header += bytearray(b'\xab\xcd\x40\x00')  # Identification | Flags, Fragment Offset
+  ip_header += bytearray(b'\x40\x11\xa6\xec')  # TTL, Protocol | Header Checksum
+  ip_header += packet_bytearray[ip_src_addr:ip_src_addr+4]  # Source Address
+  ip_header += packet_bytearray[ip_dst_addr:ip_dst_addr+4]  # Destination Address
+
+  udp_header  = packet_bytearray[tcp_src_port:tcp_src_port + 2] # Source Port 
+  udp_header += packet_bytearray[tcp_dst_port:tcp_dst_port + 2] # Destination Port
+  udp_header += bytearray(b'\x00\x00\x00\x00')
+
+  packet = ip_header + udp_header + coap_data
+  packet[2] = len(packet) >> 8
+  packet[3] = len(packet) & 0x00FF

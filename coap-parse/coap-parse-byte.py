@@ -203,6 +203,9 @@ while 1:
   udp_pkt_length = udp_dst_port + 2
   udp_length = int.from_bytes(packet_bytearray[udp_pkt_length:udp_pkt_length+2], 'big')
   print("UDP Length:   {}".format(udp_length))
+
+  udp_chksum = packet_bytearray[udp_pkt_length+2:udp_pkt_length+4] 
+  
   
   #print first line of the HTTP GET/POST request
   #line ends with 0xOD 0xOA (\r\n)
@@ -356,7 +359,7 @@ while 1:
   # print(decoded)
 
   ip_header  = bytearray(b'\x45\x00\x00\x28')  # Version, IHL, Type of Service | Total Length
-  ip_header += bytearray(b'\xab\xcd\x00\x00')  # Identification | Flags, Fragment Offset
+  ip_header += bytearray(b'\xab\xcd\x40\x00')  # Identification | Flags, Fragment Offset
   ip_header += bytearray(b'\x40\x06\xa6\xec')  # TTL, Protocol | Header Checksum
   ip_header += packet_bytearray[ip_src_addr:ip_src_addr+4]  # Source Address
   ip_header += packet_bytearray[ip_dst_addr:ip_dst_addr+4]  # Destination Address
@@ -365,11 +368,11 @@ while 1:
   tcp_header += packet_bytearray[udp_dst_port:udp_dst_port + 2] # Destination Port
   tcp_header += bytearray(b'\x00\x00\x00\x00') # Sequence Number
   tcp_header += bytearray(b'\x00\x00\x00\x00') # Acknowledgement Number
-  tcp_header += bytearray(b'\x50\x02\x71\x10') # Data Offset, Reserved, Flags | Window Size
+  tcp_header += bytearray(b'\x50\x18\x71\x10') # Data Offset, Reserved, Flags | Window Size
   tcp_header += bytearray(b'\xe6\x32\x00\x00') # Checksum | Urgent Pointer
 
   # http_header = b'\x47\x45\x54\x20\x2f\x20\x48\x54\x54\x50\x2f\x31\x2e\x31\x0d\x0a' # "GET \ HTTP\1.1"
-  http_header = bytearray(b"POSTC \\ HTTP\\1.1\x0d\x0a")
+  http_header = bytearray(b"POST / HTTP/1.1\x0d\x0a")
   http_header += coap_data
   http_header += bytearray(b"\x0d\x0a\x0d\x0a")
 

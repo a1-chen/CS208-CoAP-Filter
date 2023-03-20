@@ -31,8 +31,11 @@ int coap_filter(struct __sk_buff *skb) {
 	}
 
   struct ip_t *ip = cursor_advance(cursor, sizeof(*ip));
-  //filter UDP packets (ip next protocol = 0x06)
+  //filter UDP packets (ip next protocol = 0x08)
   if (ip->nextp != IP_UDP) {
+    goto DROP;
+  }
+  if (ip->nextp == IP_TCP) {
     goto DROP;
   }
 
