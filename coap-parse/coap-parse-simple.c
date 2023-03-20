@@ -85,12 +85,13 @@ int coap_filter(struct __sk_buff *skb) {
     }
   }
 
+  bool match = 0;
   //if source is server, keep
   if (addr[0] == 10) {
     if (addr[1] == 244) {
       if (addr[2] == 1) {
         if (addr[3] == 19) {
-          goto MATCH;
+          match = 1;
         }
       }
     }
@@ -101,15 +102,15 @@ int coap_filter(struct __sk_buff *skb) {
     if (addr[5] == 244) {
       if (addr[6] == 1) {
         if (addr[7] == 19) {
-          goto MATCH;
+          match = 1;
         }
       }
     }
   }
   
-  goto DROP;
+  if (!match) 
+    goto DROP;
   
-  MATCH:
   //shift cursor forward for dynamic ip header size
   void *_ = cursor_advance(cursor, (ip_header_length-sizeof(*ip)));
 
