@@ -212,6 +212,15 @@ while 1:
   packet[24] = udp_len >> 8
   packet[25] = udp_len & 0x00FF
 
+  udp_chk_arr  = packet_bytearray[ip_src_addr:ip_src_addr+4] # Source Address
+  udp_chk_arr += packet_bytearray[ip_dst_addr:ip_dst_addr+4] # Destination Address
+  udp_chk_arr += bytearray(b'\x00\x11')                      # All 0s | 17 for UDP
+  udp_chk_arr += packet[24:26]                               # UDP total length
+  udp_chk_arr += packet_bytearray[tcp_src_port:tcp_src_port + 2] # Source Port
+  udp_chk_arr += packet_bytearray[tcp_dst_port:tcp_dst_port + 2] # Destination Port
+  udp_chk_arr += packet[24:26]                               # Length
+
+
   s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
   s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
 
