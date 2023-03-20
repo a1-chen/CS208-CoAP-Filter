@@ -189,11 +189,14 @@ while 1:
   #   print ("%c" % chr(packet_bytearray[i]), end = "")
   # print("")
   
+  url = "{}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
   coap_offset = payload_offset + 23
   whole_payload = packet_bytearray[payload_offset:]
   print(whole_payload)
   coap_data = packet_bytearray[coap_offset:]
   print(coap_data)
+  coap_data2 = packet_bytearray[coap_offset:len(packet_bytearray-4)]
+  print(coap_data2)
 
   ip_header  = bytearray(b'\x45\x00\x00\x28')  # Version, IHL, Type of Service | Total Length
   ip_header += bytearray(b'\xab\xcd\x40\x00')  # Identification | Flags, Fragment Offset
