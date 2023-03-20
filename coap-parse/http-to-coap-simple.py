@@ -190,7 +190,7 @@ while 1:
   # print("")
   
   url = "{}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
-  coap_offset = payload_offset + 23
+  coap_offset = payload_offset + 17
   coap_data = packet_bytearray[coap_offset:len(packet_bytearray)-4]
   print(coap_data)
 
