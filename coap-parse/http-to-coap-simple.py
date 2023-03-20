@@ -130,11 +130,9 @@ while 1:
   ip_header_length = ip_header_length << 2                    #shift to obtain length
 
   ip_src_addr = ETH_HLEN + 12
-  ip_src_str = "Source IP:    {}.{}.{}.{}".format(packet_bytearray[ip_src_addr], packet_bytearray[ip_src_addr+1], packet_bytearray[ip_src_addr+2], packet_bytearray[ip_src_addr+3])
-  print(ip_src_str)
   ip_dst_addr = ETH_HLEN + 16
-  ip_dst_str = "Dest IP:      {}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
-  print(ip_dst_str)
+  # ip_dst = "{}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
+  # if (ip_dst == self_ip) {}
 
   #TCP HEADER
   #https://www.rfc-editor.org/rfc/rfc793.txt
@@ -171,9 +169,13 @@ while 1:
 
   tcp_src_port = ETH_HLEN + ip_header_length
   tcp_src = int.from_bytes(packet_bytearray[tcp_src_port:tcp_src_port + 2], 'big')
+  ip_src_str = "Source IP:    {}.{}.{}.{}".format(packet_bytearray[ip_src_addr], packet_bytearray[ip_src_addr+1], packet_bytearray[ip_src_addr+2], packet_bytearray[ip_src_addr+3])
+  print(ip_src_str)
   print("Source Port:  {}".format(tcp_src))
 
   tcp_dst_port = tcp_src_port + 2
+  ip_dst_str = "Dest IP:      {}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
+  print(ip_dst_str)
   tcp_dst = int.from_bytes(packet_bytearray[tcp_dst_port:tcp_dst_port + 2], 'big')
   print("Dest Port:    {}".format(tcp_dst))
 

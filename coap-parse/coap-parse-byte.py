@@ -266,7 +266,7 @@ while 1:
   if (pkt_tkl > 0):
     pkt_token = int.from_bytes(packet_bytearray[(coap_offset + 4):(coap_offset + 4 + pkt_tkl)], 'big')
   if (pkt_token != 0):
-    print("Token:        {}".format(pkt_token))
+    print("Token:        {}".format(binascii.hexlify(packet_bytearray[(coap_offset + 4):(coap_offset + 4 + pkt_tkl)])))
   else:
     print("Token:        None (zero-length)")
   
@@ -350,8 +350,8 @@ while 1:
 
   coap_data = packet_bytearray[coap_offset:]
   print(coap_data)
-  coap_hex = binascii.hexlify(coap_data)
-  print(coap_hex)
+  # coap_hex = binascii.hexlify(coap_data)
+  # print(coap_hex)
   # data = base64.b64encode(coap_data)
   # print(data)
   # decoded = base64.b64decode(data)
