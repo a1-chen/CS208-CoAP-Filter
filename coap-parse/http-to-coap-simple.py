@@ -195,7 +195,7 @@ while 1:
   print(whole_payload)
   coap_data = packet_bytearray[coap_offset:]
   print(coap_data)
-  coap_data2 = packet_bytearray[coap_offset:len(packet_bytearray-4)]
+  coap_data2 = packet_bytearray[coap_offset:len(packet_bytearray)-4]
   print(coap_data2)
 
   ip_header  = bytearray(b'\x45\x00\x00\x28')  # Version, IHL, Type of Service | Total Length
