@@ -340,7 +340,6 @@ while 1:
     print("Payload:      empty")
   
   print("")
-  print("")
   
   # TODO: slap it into the http tcp post packet
   url = "{}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
@@ -368,7 +367,7 @@ while 1:
   tcp_header += packet_bytearray[udp_dst_port:udp_dst_port + 2] # Destination Port
   tcp_header += bytearray(b'\x00\x00\x00\x00') # Sequence Number
   tcp_header += bytearray(b'\x00\x00\x00\x00') # Acknowledgement Number
-  tcp_header += bytearray(b'\x50\x18\x71\x10') # Data Offset, Reserved, Flags | Window Size
+  tcp_header += bytearray(b'\x50\x18\x01\xfb') # Data Offset, Reserved, Flags | Window Size
   tcp_header += bytearray(b'\xe6\x32\x00\x00') # Checksum | Urgent Pointer
 
   # http_header = b'\x47\x45\x54\x20\x2f\x20\x48\x54\x54\x50\x2f\x31\x2e\x31\x0d\x0a' # "GET \ HTTP\1.1"
@@ -387,4 +386,6 @@ while 1:
   s.sendto(packet, (url, udp_dst))
   # s.sendto(packet, ('10.10.10.1', 0))
   s.close()
+  print("")
+  print("")
  

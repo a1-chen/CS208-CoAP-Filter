@@ -191,12 +191,8 @@ while 1:
   
   url = "{}.{}.{}.{}".format(packet_bytearray[ip_dst_addr], packet_bytearray[ip_dst_addr+1], packet_bytearray[ip_dst_addr+2], packet_bytearray[ip_dst_addr+3])
   coap_offset = payload_offset + 23
-  whole_payload = packet_bytearray[payload_offset:]
-  print(whole_payload)
-  coap_data = packet_bytearray[coap_offset:]
+  coap_data = packet_bytearray[coap_offset:len(packet_bytearray)-4]
   print(coap_data)
-  coap_data2 = packet_bytearray[coap_offset:len(packet_bytearray)-4]
-  print(coap_data2)
 
   ip_header  = bytearray(b'\x45\x00\x00\x28')  # Version, IHL, Type of Service | Total Length
   ip_header += bytearray(b'\xab\xcd\x40\x00')  # Identification | Flags, Fragment Offset
@@ -206,11 +202,15 @@ while 1:
 
   udp_header  = packet_bytearray[tcp_src_port:tcp_src_port + 2] # Source Port 
   udp_header += packet_bytearray[tcp_dst_port:tcp_dst_port + 2] # Destination Port
-  udp_header += bytearray(b'\x00\x00\x00\x00')
+  udp_header += bytearray(b'\x00\x00\x00\x00') # Length | Checksum
 
   packet = ip_header + udp_header + coap_data
   packet[2] = len(packet) >> 8
   packet[3] = len(packet) & 0x00FF
+
+  udp_len = len(packet) - 20
+  packet[24] = udp_len >> 8
+  packet[25] = udp_len & 0x00FF
 
   s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
   s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
@@ -218,3 +218,5 @@ while 1:
   s.sendto(packet, (url, tcp_dst))
   # s.sendto(packet, ('10.10.10.1', 0))
   s.close()
+  print("")
+  print("")
