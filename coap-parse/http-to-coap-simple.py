@@ -189,7 +189,9 @@ while 1:
   #   print ("%c" % chr(packet_bytearray[i]), end = "")
   # print("")
   
-  coap_offset = payload_offset + 17
+  coap_offset = payload_offset + 23
+  whole_payload = packet_bytearray[payload_offset:]
+  print(whole_payload)
   coap_data = packet_bytearray[coap_offset:]
   print(coap_data)
 
@@ -206,3 +208,10 @@ while 1:
   packet = ip_header + udp_header + coap_data
   packet[2] = len(packet) >> 8
   packet[3] = len(packet) & 0x00FF
+
+  s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
+  s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+
+  s.sendto(packet, (url, tcp_dst))
+  # s.sendto(packet, ('10.10.10.1', 0))
+  s.close()
